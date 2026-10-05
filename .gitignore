@@ -3,9 +3,11 @@ dist/
 
 # Environment files and local secrets
 .env
+.env.*
+!.env.example
+!.env.*.example
 .env.local
 .env.*.local
-!.env.example
 
 # Logs
 *.log
@@ -20,8 +22,8 @@ coverage/
 
 # Editor and OS files
 .idea/
-.vscode/
-!.vscode/extensions.json
+.vscode/*
 !.vscode/settings.json
+!.vscode/extensions.json
 .DS_Store
 Thumbs.db

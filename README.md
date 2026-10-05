@@ -34,21 +34,21 @@ Sao chép `.env.example` thành `.env` rồi điều chỉnh giá trị cho máy
 Git bỏ qua `.env` vì file có thể chứa thông tin xác thực; `.env.example` là
 mẫu an toàn được commit.
 
-| Biến | Mục đích | Giá trị mặc định |
-| --- | --- | --- |
-| `NODE_ENV` | Môi trường chạy ứng dụng | `development` |
-| `PORT` | Cổng HTTP mà server sẽ lắng nghe | `3000` |
-| `LOG_LEVEL` | Ngưỡng mức log của Pino | `info` |
+| Biến           | Mục đích                                          | Giá trị mặc định                |
+| -------------- | ------------------------------------------------- | ------------------------------- |
+| `NODE_ENV`     | Môi trường chạy ứng dụng                          | `development`                   |
+| `PORT`         | Cổng HTTP mà server sẽ lắng nghe                  | `3000`                          |
+| `LOG_LEVEL`    | Ngưỡng mức log của Pino                           | `info`                          |
 | `DATABASE_URL` | Chuỗi kết nối PostgreSQL cho tầng dữ liệu sau này | Cơ sở dữ liệu `teamflow` cục bộ |
 
 ## Scripts
 
-| Lệnh | Mục đích |
-| --- | --- |
-| `npm run dev` | Chạy server phát triển với khả năng tự khởi động lại |
-| `npm run build` | Biên dịch TypeScript sang `dist/` |
-| `npm start` | Chạy server đã biên dịch |
-| `npm test` | Chạy Vitest |
+| Lệnh            | Mục đích                                             |
+| --------------- | ---------------------------------------------------- |
+| `npm run dev`   | Chạy server phát triển với khả năng tự khởi động lại |
+| `npm run build` | Biên dịch TypeScript sang `dist/`                    |
+| `npm start`     | Chạy server đã biên dịch                             |
+| `npm test`      | Chạy Vitest                                          |
 
 ## Luồng request dự kiến
 

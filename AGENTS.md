@@ -60,6 +60,36 @@ Avoid blindly generating boilerplate.
 
 ---
 
+## Guided Implementation Format
+
+When guiding me through an implementation step, provide a concrete solution,
+not only a task description or issue.
+
+For every file to create or update, include:
+
+1. The exact file path.
+2. Whether the file is new or existing.
+3. The complete file contents when replacing a small file, or the exact code
+   block and insertion/replacement location for a larger file.
+4. An explanation of why each important configuration option, API, or design
+   choice is used.
+5. Commands to run and the expected result when verification is appropriate.
+
+I will type or copy the proposed code myself in order to learn from it. Do not
+modify application code or configuration files during a guided implementation
+step unless I explicitly ask you to implement the change.
+
+After I complete a step, review my implementation against the proposed solution
+and explain any mistakes, alternatives, or improvements before moving on.
+
+For a small, bounded feature, provide the complete guided solution in one
+response. Organize it into sequential steps, but include all relevant file
+contents or targeted code changes, explanations, verification commands, tests,
+and completion criteria together. I will implement the full feature myself and
+then ask for review.
+
+---
+
 ## Technology Stack
 
 Initial stack:
