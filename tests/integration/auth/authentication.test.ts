@@ -73,12 +73,11 @@ describe("Authentication", () => {
             .set("Authorization", `Bearer ${authentication.accessToken}`);
 
         expect(response.status).toBe(200);
-        expect(response.body).toEqual({
-            user: {
-                userId: user.id,
-                email: user.email,
-            },
+        expect(response.body.user).toMatchObject({
+            id: user.id,
+            email: user.email,
         });
+        expect(response.body.user.passwordHash).toBeUndefined();
     });
 
     it("rejects an invalid access token", async () => {
