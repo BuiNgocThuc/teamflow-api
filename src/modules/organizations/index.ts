@@ -3,8 +3,10 @@ export { organizationsRepository } from "./organizations.repository.js";
 export { default as organizationsRouter } from "./organizations.route.js";
 export {
     createOrganizationSchema,
+    listOrganizationsQuerySchema,
     organizationParamsSchema,
     type CreateOrganizationInput,
+    type ListOrganizationsQuery,
     type UpdateOrganizationInput,
     updateOrganizationSchema,
 } from "./organizations.schema.js";

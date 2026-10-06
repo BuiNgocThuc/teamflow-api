@@ -1,6 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 
 import { db, organizationMembers, organizations } from "@/database";
+import { getPaginationOffset, type PaginationQuery } from "@/shared";
 
 const organizationFields = {
     id: organizations.id,
@@ -33,18 +34,32 @@ export const organizationsRepository = {
         });
     },
 
-    async listForUser(userId: string) {
-        return db
-            .select({
-                ...organizationFields,
-                role: organizationMembers.role,
-            })
-            .from(organizationMembers)
-            .innerJoin(
-                organizations,
-                eq(organizationMembers.organizationId, organizations.id),
-            )
-            .where(eq(organizationMembers.userId, userId));
+    async listForUser(userId: string, pagination: PaginationQuery) {
+        const [data, totalRows] = await Promise.all([
+            db
+                .select({
+                    ...organizationFields,
+                    role: organizationMembers.role,
+                })
+                .from(organizationMembers)
+                .innerJoin(
+                    organizations,
+                    eq(organizationMembers.organizationId, organizations.id),
+                )
+                .where(eq(organizationMembers.userId, userId))
+                .orderBy(desc(organizations.createdAt), desc(organizations.id))
+                .limit(pagination.limit)
+                .offset(getPaginationOffset(pagination)),
+            db
+                .select({ total: count() })
+                .from(organizationMembers)
+                .where(eq(organizationMembers.userId, userId)),
+        ]);
+
+        return {
+            data,
+            total: totalRows[0]?.total ?? 0,
+        };
     },
 
     async findById(organizationId: string) {

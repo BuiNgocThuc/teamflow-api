@@ -76,19 +76,103 @@ describe("Organization management", () => {
     it("lists only organizations that belong to the authenticated user", async () => {
         const { accessToken } = await registerAndLogin();
         const organization = await createOrganization(accessToken);
+        const otherUser = await registerAndLogin();
+
+        await createOrganization(otherUser.accessToken, "Other Organization");
 
         const response = await request(app)
             .get("/organizations")
             .set("Authorization", `Bearer ${accessToken}`);
 
         expect(response.status).toBe(200);
-        expect(response.body.organizations).toEqual([
+        expect(response.body.data).toEqual([
             expect.objectContaining({
                 id: organization.id,
                 name: "Engineering",
                 role: "OWNER",
             }),
         ]);
+        expect(response.body.pagination).toEqual({
+            page: 1,
+            limit: 20,
+            total: 1,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+        });
+    });
+
+    it("uses default pagination values", async () => {
+        const { accessToken } = await registerAndLogin();
+
+        for (let index = 1; index <= 21; index += 1) {
+            await createOrganization(accessToken, `Organization ${index}`);
+        }
+
+        const response = await request(app)
+            .get("/organizations")
+            .set("Authorization", `Bearer ${accessToken}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.data).toHaveLength(20);
+        expect(response.body.pagination).toEqual({
+            page: 1,
+            limit: 20,
+            total: 21,
+            totalPages: 2,
+            hasNextPage: true,
+            hasPreviousPage: false,
+        });
+    });
+
+    it("returns the data and metadata for the requested page", async () => {
+        const { accessToken } = await registerAndLogin();
+
+        for (let index = 1; index <= 11; index += 1) {
+            await createOrganization(accessToken, `Organization ${index}`);
+        }
+
+        const allOrganizationsResponse = await request(app)
+            .get("/organizations?limit=100")
+            .set("Authorization", `Bearer ${accessToken}`);
+        const pageResponse = await request(app)
+            .get("/organizations?page=2&limit=5")
+            .set("Authorization", `Bearer ${accessToken}`);
+
+        expect(pageResponse.status).toBe(200);
+        expect(
+            pageResponse.body.data.map(
+                (organization: { id: string }) => organization.id,
+            ),
+        ).toEqual(
+            allOrganizationsResponse.body.data
+                .slice(5, 10)
+                .map((organization: { id: string }) => organization.id),
+        );
+        expect(pageResponse.body.pagination).toEqual({
+            page: 2,
+            limit: 5,
+            total: 11,
+            totalPages: 3,
+            hasNextPage: true,
+            hasPreviousPage: true,
+        });
+    });
+
+    it("rejects invalid pagination query values", async () => {
+        const { accessToken } = await registerAndLogin();
+
+        const invalidPageResponse = await request(app)
+            .get("/organizations?page=0")
+            .set("Authorization", `Bearer ${accessToken}`);
+        const invalidLimitResponse = await request(app)
+            .get("/organizations?limit=101")
+            .set("Authorization", `Bearer ${accessToken}`);
+
+        expect(invalidPageResponse.status).toBe(400);
+        expect(invalidPageResponse.body.error.code).toBe("INVALID_INPUT");
+        expect(invalidLimitResponse.status).toBe(400);
+        expect(invalidLimitResponse.body.error.code).toBe("INVALID_INPUT");
     });
 
     it("gets an organization for an organization member", async () => {

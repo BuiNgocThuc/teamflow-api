@@ -1,8 +1,9 @@
-import { AppError } from "@/shared";
+import { AppError, createPaginationMetadata } from "@/shared";
 
 import { organizationsRepository } from "./organizations.repository.js";
 import type {
     CreateOrganizationInput,
+    ListOrganizationsQuery,
     UpdateOrganizationInput,
 } from "./organizations.schema.js";
 
@@ -44,8 +45,13 @@ export async function createOrganization(
     return organizationsRepository.createWithOwner(userId, input.name);
 }
 
-export async function listOrganizations(userId: string) {
-    return organizationsRepository.listForUser(userId);
+export async function listOrganizations(userId: string, query: ListOrganizationsQuery) {
+    const { data, total } = await organizationsRepository.listForUser(userId, query);
+
+    return {
+        data,
+        pagination: createPaginationMetadata(query, total),
+    };
 }
 
 export async function getOrganization(userId: string, organizationId: string) {

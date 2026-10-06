@@ -70,6 +70,16 @@
             "key": "updated_organization_name",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "organization_page",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "organization_limit",
+            "value": "20",
+            "type": "string"
         }
     ],
     "item": [
@@ -405,7 +415,7 @@
                                 "value": "Bearer {{access_token}}"
                             }
                         ],
-                        "url": "{{base_url}}/organizations"
+                        "url": "{{base_url}}/organizations?page={{organization_page}}&limit={{organization_limit}}"
                     },
                     "event": [
                         {
@@ -415,6 +425,12 @@
                                 "exec": [
                                     "pm.test(\"lists organizations\", () => {",
                                     "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "pm.test(\"returns pagination metadata\", () => {",
+                                    "    pm.expect(response.pagination.page).to.eql(Number(pm.collectionVariables.get(\"organization_page\")));",
+                                    "    pm.expect(response.pagination.limit).to.eql(Number(pm.collectionVariables.get(\"organization_limit\")));",
                                     "});"
                                 ]
                             }

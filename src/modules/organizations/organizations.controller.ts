@@ -4,6 +4,7 @@ import { getAuthenticatedUserId } from "@/shared";
 
 import {
     createOrganizationSchema,
+    listOrganizationsQuerySchema,
     organizationParamsSchema,
     updateOrganizationSchema,
 } from "./organizations.schema.js";
@@ -26,9 +27,10 @@ export async function create(request: Request, response: Response): Promise<Resp
 }
 
 export async function list(request: Request, response: Response): Promise<Response> {
-    const organizations = await listOrganizations(getAuthenticatedUserId(request));
+    const query = listOrganizationsQuerySchema.parse(request.query);
+    const result = await listOrganizations(getAuthenticatedUserId(request), query);
 
-    return response.status(200).json({ organizations });
+    return response.status(200).json(result);
 }
 
 export async function getById(request: Request, response: Response): Promise<Response> {
