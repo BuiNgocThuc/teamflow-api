@@ -1,83 +1,122 @@
 # TeamFlow API
 
-Backend API phục vụ một ứng dụng cộng tác nhóm, được xây dựng với mục tiêu học
-tập. Dự án dùng Express và TypeScript để làm rõ vòng đời request của Node.js,
-I/O bất đồng bộ, xử lý lỗi và tích hợp PostgreSQL trước khi sử dụng các
-framework cấp cao hơn.
+TeamFlow API là backend cho một hệ thống quản lý công việc nhóm, lấy cảm hứng từ
+Jira và Trello. Dự án cho phép user đăng ký, đăng nhập, quản lý profile, sau đó
+sẽ cộng tác trong organization, project và task.
+
+Mục tiêu chính của project là củng cố nền tảng Node.js Backend và TypeScript
+thông qua việc xây dựng từng feature end-to-end với Express.js và PostgreSQL.
+
+## Chức năng
+
+| Chức năng                | Mô tả                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| User Registration        | User tạo tài khoản bằng tên, email và password; password được hash trước khi lưu.   |
+| Authentication           | User login, nhận JWT access token và refresh token, refresh session hoặc logout.    |
+| User Profile             | User xem và cập nhật profile của chính mình, gồm tên và email.                      |
+| Organization             | User tạo và quản lý không gian làm việc cho team.                                   |
+| Member & Role Management | Thêm/xóa thành viên và quản lý các role `OWNER`, `ADMIN`, `MEMBER`.                 |
+| Project Management       | Tạo, xem, cập nhật và xóa project trong organization.                               |
+| Task Management          | Tạo và quản lý task với title, description, priority, status, due date và assignee. |
+| Task Assignment          | Chỉ assign task cho user thuộc cùng organization.                                   |
+| Task Workflow            | Kiểm soát các transition trạng thái như `TODO`, `IN_PROGRESS` và `DONE`.            |
+| Comments                 | Thành viên thảo luận trên task, chỉnh sửa hoặc xóa comment của mình.                |
+| Activity Logs            | Lưu lại các thay đổi quan trọng như task được tạo, giao hoặc đổi trạng thái.        |
+| Notifications            | Thông báo khi user được assign task hoặc có comment liên quan.                      |
+| Search & Pagination      | Filter, search, sort và phân trang danh sách task.                                  |
+| Caching                  | Cache project summary bằng Redis và invalidation khi task thay đổi.                 |
+| CSV Export               | Export task của project qua CSV stream mà không tải toàn bộ data vào memory.        |
 
 ## Công nghệ sử dụng
 
-- Node.js and TypeScript
-- Express
-- PostgreSQL (sẽ được tích hợp ở các bước tiếp theo)
-- Zod để kiểm tra dữ liệu tại ranh giới hệ thống
-- Pino để ghi log HTTP có cấu trúc
-- Vitest và Supertest để kiểm thử
+- Node.js
+- TypeScript
+- Express.js
+- PostgreSQL
+- Drizzle ORM
+- Zod
+- Argon2id
+- JWT (`jose`)
+- Docker Compose
+- Vitest và Supertest
+- Prettier
 
-## Bắt đầu
+## Getting Started
 
-Yêu cầu: Node.js 20 trở lên và npm.
+### Yêu cầu
+
+- Node.js 20 trở lên
+- npm
+- Docker và Docker Compose
+
+### Clone project
+
+```bash
+git clone <repository-url>
+cd teamflow-api
+```
+
+Thay `<repository-url>` bằng URL Git repository của bạn.
+
+### Cài đặt dependencies
 
 ```bash
 npm install
+```
+
+### Cấu hình environment variables
+
+```bash
 cp .env.example .env
+cp .env.test.example .env.test
+```
+
+Trước khi chạy production-like environment, thay `JWT_ACCESS_SECRET` trong
+`.env` bằng một secret mạnh và riêng tư.
+
+### Khởi động PostgreSQL và migration
+
+```bash
+docker compose up -d
+npm run db:migrate
+npm run db:migrate:test
+```
+
+### Chạy development server
+
+```bash
 npm run dev
 ```
 
-`npm run dev` khởi chạy file entry point TypeScript bằng `tsx watch`; tiến
-trình sẽ tự khởi động lại khi mã nguồn thay đổi. Scaffold ban đầu chưa có API
-route, vì vậy cần thêm route trước khi mong đợi server phản hồi.
-
-## Biến môi trường
-
-Sao chép `.env.example` thành `.env` rồi điều chỉnh giá trị cho máy của bạn.
-Git bỏ qua `.env` vì file có thể chứa thông tin xác thực; `.env.example` là
-mẫu an toàn được commit.
-
-| Biến           | Mục đích                                          | Giá trị mặc định                |
-| -------------- | ------------------------------------------------- | ------------------------------- |
-| `NODE_ENV`     | Môi trường chạy ứng dụng                          | `development`                   |
-| `PORT`         | Cổng HTTP mà server sẽ lắng nghe                  | `3000`                          |
-| `LOG_LEVEL`    | Ngưỡng mức log của Pino                           | `info`                          |
-| `DATABASE_URL` | Chuỗi kết nối PostgreSQL cho tầng dữ liệu sau này | Cơ sở dữ liệu `teamflow` cục bộ |
-
-## Scripts
-
-| Lệnh            | Mục đích                                             |
-| --------------- | ---------------------------------------------------- |
-| `npm run dev`   | Chạy server phát triển với khả năng tự khởi động lại |
-| `npm run build` | Biên dịch TypeScript sang `dist/`                    |
-| `npm start`     | Chạy server đã biên dịch                             |
-| `npm test`      | Chạy Vitest                                          |
-
-## Luồng request dự kiến
+API chạy tại:
 
 ```text
-HTTP request
-  -> Express router
-  -> middleware (request ID, logging, validation, auth)
-  -> controller
-  -> service
-  -> repository
-  -> PostgreSQL
+http://localhost:3000
 ```
 
-Mỗi tầng có một trách nhiệm hẹp: route kết hợp các concern HTTP, controller ánh
-xạ HTTP sang lời gọi ứng dụng, service chứa quy tắc nghiệp vụ, còn repository
-quản lý SQL/persistence. Đối tượng Express `Request` và `Response` không nên
-đi vào service.
+Kiểm tra server:
 
-## Lưu ý khi phát triển
+```bash
+curl http://localhost:3000/health
+```
 
-Node.js xử lý công việc mạng và cơ sở dữ liệu một cách bất đồng bộ, cho phép
-event loop phục vụ request khác trong khi I/O đang chờ. Không đặt tác vụ đồng
-bộ nặng về CPU trong request handler, vì chúng chặn mọi request dùng chung tiến
-trình. Khi kết nối database, dự án sẽ dùng connection pool thay vì mở một kết
-nối mới cho từng request.
+Kết quả mong đợi:
 
-Các bước triển khai tiếp theo được giữ nhỏ và rõ ràng:
+```json
+{
+    "status": "ok"
+}
+```
 
-1. Tạo ứng dụng Express và health endpoint.
-2. Thêm xử lý lỗi tập trung và request logging có cấu trúc.
-3. Kết nối PostgreSQL qua pool, sau đó tạo feature module đầu tiên.
-4. Thêm API test tập trung vào hành vi bằng Vitest và Supertest.
+### Chạy tests
+
+```bash
+npm test
+```
+
+### Build project
+
+```bash
+npm run build
+npm start
+```

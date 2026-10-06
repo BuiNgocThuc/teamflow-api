@@ -1,0 +1,527 @@
+{
+    "info": {
+        "_postman_id": "d99145a6-7bc2-4d68-93e5-49fed4f76223",
+        "name": "TeamFlow API",
+        "description": "Collection để test Health Check, Registration, Authentication và User Profile. Chạy requests theo thứ tự từ trên xuống để variables được thiết lập tự động.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:3000",
+            "type": "string"
+        },
+        {
+            "key": "name",
+            "value": "Postman User",
+            "type": "string"
+        },
+        {
+            "key": "email",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "password",
+            "value": "secure-password",
+            "type": "string"
+        },
+        {
+            "key": "updated_name",
+            "value": "Updated Postman User",
+            "type": "string"
+        },
+        {
+            "key": "updated_email",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "user_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "access_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "refresh_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "revoked_refresh_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "organization_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "organization_name",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "updated_organization_name",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Health",
+            "item": [
+                {
+                    "name": "Get Health",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{base_url}}/health"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"returns 200 OK\", () => {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test(\"returns health status\", () => {",
+                                    "    pm.expect(pm.response.json()).to.eql({ status: \"ok\" });",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Register",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const email = `postman_${Date.now()}@example.com`;",
+                                    "pm.collectionVariables.set(\"email\", email);"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"creates a user\", () => {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "pm.collectionVariables.set(\"user_id\", response.user.id);",
+                                    "pm.collectionVariables.set(\"email\", response.user.email);",
+                                    "",
+                                    "pm.test(\"does not expose password data\", () => {",
+                                    "    pm.expect(response.user).to.not.have.property(\"password\");",
+                                    "    pm.expect(response.user).to.not.have.property(\"passwordHash\");",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"{{name}}\",\n    \"email\": \"{{email}}\",\n    \"password\": \"{{password}}\"\n}"
+                        },
+                        "url": "{{base_url}}/auth/register"
+                    }
+                },
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"logs in successfully\", () => {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "pm.collectionVariables.set(\"access_token\", response.accessToken);",
+                                    "pm.collectionVariables.set(\"refresh_token\", response.refreshToken);",
+                                    "",
+                                    "pm.test(\"returns a token pair\", () => {",
+                                    "    pm.expect(response.accessToken).to.be.a(\"string\").and.not.empty;",
+                                    "    pm.expect(response.refreshToken).to.be.a(\"string\").and.not.empty;",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"{{email}}\",\n    \"password\": \"{{password}}\"\n}"
+                        },
+                        "url": "{{base_url}}/auth/login"
+                    }
+                },
+                {
+                    "name": "Refresh Token",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"refreshes the token pair\", () => {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "pm.collectionVariables.set(\"access_token\", response.accessToken);",
+                                    "pm.collectionVariables.set(\"refresh_token\", response.refreshToken);"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}"
+                        },
+                        "url": "{{base_url}}/auth/refresh"
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"logs out successfully\", () => {",
+                                    "    pm.response.to.have.status(204);",
+                                    "});",
+                                    "",
+                                    "pm.collectionVariables.set(\"revoked_refresh_token\", pm.collectionVariables.get(\"refresh_token\"));",
+                                    "pm.collectionVariables.unset(\"refresh_token\");"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}"
+                        },
+                        "url": "{{base_url}}/auth/logout"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "User Profile",
+            "item": [
+                {
+                    "name": "Get My Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/users/me"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"returns current user profile\", () => {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "pm.collectionVariables.set(\"user_id\", response.user.id);",
+                                    "pm.collectionVariables.set(\"email\", response.user.email);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update My Profile",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const updatedEmail = `updated_${Date.now()}@example.com`;",
+                                    "pm.collectionVariables.set(\"updated_email\", updatedEmail);"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"updates current user profile\", () => {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "pm.collectionVariables.set(\"email\", response.user.email);",
+                                    "pm.collectionVariables.set(\"user_id\", response.user.id);"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"{{updated_name}}\",\n    \"email\": \"{{updated_email}}\"\n}"
+                        },
+                        "url": "{{base_url}}/users/me"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Organizations",
+            "item": [
+                {
+                    "name": "Create Organization",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set(\"organization_name\", `Postman Organization ${Date.now()}`);"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"creates an organization\", () => {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "pm.collectionVariables.set(\"organization_id\", response.organization.id);"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"{{organization_name}}\"\n}"
+                        },
+                        "url": "{{base_url}}/organizations"
+                    }
+                },
+                {
+                    "name": "List My Organizations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/organizations"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"lists organizations\", () => {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Organization",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/organizations/{{organization_id}}"
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"gets an organization\", () => {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Organization",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set(\"updated_organization_name\", `Updated Organization ${Date.now()}`);"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"updates an organization\", () => {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "pm.collectionVariables.set(\"organization_name\", response.organization.name);"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"{{updated_organization_name}}\"\n}"
+                        },
+                        "url": "{{base_url}}/organizations/{{organization_id}}"
+                    }
+                },
+                {
+                    "name": "Delete Organization",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"deletes an organization\", () => {",
+                                    "    pm.response.to.have.status(204);",
+                                    "});",
+                                    "",
+                                    "pm.collectionVariables.unset(\"organization_id\");"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/organizations/{{organization_id}}"
+                    }
+                }
+            ]
+        }
+    ]
+}

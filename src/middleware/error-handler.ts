@@ -1,7 +1,7 @@
 import type { ErrorRequestHandler } from "express";
 import { ZodError } from "zod";
 
-import { AppError } from "@/shared";
+import { AppError, getErrorDefinition } from "@/shared";
 
 function isMalformedJsonError(error: unknown): boolean {
     return (
@@ -18,19 +18,23 @@ export const errorHandler: ErrorRequestHandler = (
     _next,
 ) => {
     if (isMalformedJsonError(error)) {
-        return response.status(400).json({
+        const definition = getErrorDefinition("INVALID_JSON");
+
+        return response.status(definition.statusCode).json({
             error: {
                 code: "INVALID_JSON",
-                message: "Request body must be valid JSON.",
+                message: definition.message,
             },
         });
     }
 
     if (error instanceof ZodError) {
-        return response.status(400).json({
+        const definition = getErrorDefinition("INVALID_INPUT");
+
+        return response.status(definition.statusCode).json({
             error: {
                 code: "INVALID_INPUT",
-                message: "Request validation failed.",
+                message: definition.message,
                 details: error.issues.map((issue) => ({
                     path: issue.path.join("."),
                     message: issue.message,
@@ -50,10 +54,12 @@ export const errorHandler: ErrorRequestHandler = (
 
     console.error("Unhandled application error:", error);
 
-    return response.status(500).json({
+    const definition = getErrorDefinition("INTERNAL_SERVER_ERROR");
+
+    return response.status(definition.statusCode).json({
         error: {
             code: "INTERNAL_SERVER_ERROR",
-            message: "An unexpected error occurred.",
+            message: definition.message,
         },
     });
 };

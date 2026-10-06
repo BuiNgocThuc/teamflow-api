@@ -1,2 +1,8 @@
 export { db, pool } from "./client.js";
-export { refreshTokens, users } from "./schema.js";
+export {
+    organizationMembers,
+    organizationRoleEnum,
+    organizations,
+    refreshTokens,
+    users,
+} from "./schema.js";

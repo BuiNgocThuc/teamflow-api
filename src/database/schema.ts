@@ -1,4 +1,12 @@
-import { index, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import {
+    index,
+    pgEnum,
+    pgTable,
+    primaryKey,
+    timestamp,
+    uuid,
+    varchar,
+} from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -26,5 +34,41 @@ export const refreshTokens = pgTable(
     (table) => [
         index("refresh_tokens_user_id_idx").on(table.userId),
         index("refresh_tokens_expires_at_idx").on(table.expiresAt),
+    ],
+);
+
+export const organizationRoleEnum = pgEnum("organization_role", [
+    "OWNER",
+    "ADMIN",
+    "MEMBER",
+]);
+
+export const organizations = pgTable("organizations", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name", { length: 100 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const organizationMembers = pgTable(
+    "organization_members",
+    {
+        organizationId: uuid("organization_id")
+            .notNull()
+            .references(() => organizations.id, { onDelete: "cascade" }),
+        userId: uuid("user_id")
+            .notNull()
+            .references(() => users.id, { onDelete: "cascade" }),
+        role: organizationRoleEnum("role").notNull(),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => [
+        primaryKey({
+            columns: [table.organizationId, table.userId],
+            name: "organization_members_pkey",
+        }),
+        index("organization_members_user_id_idx").on(table.userId),
     ],
 );

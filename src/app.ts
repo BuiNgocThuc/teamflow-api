@@ -1,7 +1,7 @@
 import express from "express";
 
 import { errorHandler } from "@/middleware";
-import { authRouter, usersRouter } from "@/modules";
+import { authRouter, organizationsRouter, usersRouter } from "@/modules";
 
 const app = express();
 
@@ -15,6 +15,7 @@ app.get("/health", (_request, response) => {
 
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
+app.use("/organizations", organizationsRouter);
 
 app.use(errorHandler);
 
