@@ -1,9 +1,14 @@
-import { requireMembership, requireProjectManager } from "@/modules/organizations";
+import {
+    organizationMembersRepository,
+    requireMembership,
+    requireProjectManager,
+} from "@/modules/organizations";
 import { projectsRepository } from "@/modules/projects";
 import { AppError, createPaginationMetadata } from "@/shared";
 
 import { tasksRepository } from "./tasks.repository.js";
 import type {
+    AssignTaskInput,
     CreateTaskInput,
     ListTasksQuery,
     UpdateTaskInput,
@@ -84,6 +89,38 @@ export async function updateTask(
     }
 
     return updatedTask;
+}
+
+export async function assignTask(
+    userId: string,
+    taskId: string,
+    input: AssignTaskInput,
+) {
+    const task = await getTaskOrThrow(taskId);
+    const project = await getProjectOrThrow(task.projectId);
+    await requireProjectManager(userId, project.organizationId);
+
+    const assigneeMembership =
+        await organizationMembersRepository.findByUserAndOrganization(
+            input.assigneeId,
+            project.organizationId,
+        );
+
+    if (!assigneeMembership) {
+        throw new AppError("TASK_ASSIGNEE_NOT_ORGANIZATION_MEMBER");
+    }
+
+    const assignedTask = await tasksRepository.assignAssignee({
+        taskId,
+        organizationId: project.organizationId,
+        assigneeId: input.assigneeId,
+    });
+
+    if (!assignedTask) {
+        throw new AppError("TASK_ASSIGNEE_NOT_ORGANIZATION_MEMBER");
+    }
+
+    return assignedTask;
 }
 
 export async function deleteTask(userId: string, taskId: string) {

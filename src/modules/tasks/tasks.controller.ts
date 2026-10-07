@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { getAuthenticatedUserId } from "@/shared";
 
 import {
+    assignTaskSchema,
     createTaskSchema,
     listTasksQuerySchema,
     projectTasksParamsSchema,
@@ -10,6 +11,7 @@ import {
     updateTaskSchema,
 } from "./tasks.schema.js";
 import {
+    assignTask,
     createTask,
     deleteTask,
     getTask,
@@ -44,6 +46,14 @@ export async function update(request: Request, response: Response): Promise<Resp
     const { id } = taskParamsSchema.parse(request.params);
     const input = updateTaskSchema.parse(request.body);
     const task = await updateTask(getAuthenticatedUserId(request), id, input);
+
+    return response.status(200).json({ task });
+}
+
+export async function assign(request: Request, response: Response): Promise<Response> {
+    const { id } = taskParamsSchema.parse(request.params);
+    const input = assignTaskSchema.parse(request.body);
+    const task = await assignTask(getAuthenticatedUserId(request), id, input);
 
     return response.status(200).json({ task });
 }

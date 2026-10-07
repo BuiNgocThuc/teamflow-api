@@ -34,6 +34,12 @@ export const updateTaskSchema = z
 
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 
+export const assignTaskSchema = z.object({
+    assigneeId: z.uuid(),
+});
+
+export type AssignTaskInput = z.infer<typeof assignTaskSchema>;
+
 export const projectTasksParamsSchema = z.object({
     projectId: z.uuid(),
 });

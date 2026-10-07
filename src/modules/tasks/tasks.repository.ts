@@ -1,6 +1,6 @@
-import { count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, exists } from "drizzle-orm";
 
-import { db, tasks } from "@/database";
+import { db, organizationMembers, tasks } from "@/database";
 import { getPaginationOffset, type PaginationQuery } from "@/shared";
 
 const taskFields = {
@@ -114,6 +114,41 @@ export const tasksRepository = {
             .update(tasks)
             .set(values)
             .where(eq(tasks.id, taskId))
+            .returning(taskFields);
+
+        return task ?? null;
+    },
+
+    async assignAssignee(input: {
+        taskId: string;
+        organizationId: string;
+        assigneeId: string;
+    }) {
+        const [task] = await db
+            .update(tasks)
+            .set({
+                assigneeId: input.assigneeId,
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(tasks.id, input.taskId),
+                    exists(
+                        db
+                            .select({ userId: organizationMembers.userId })
+                            .from(organizationMembers)
+                            .where(
+                                and(
+                                    eq(
+                                        organizationMembers.organizationId,
+                                        input.organizationId,
+                                    ),
+                                    eq(organizationMembers.userId, input.assigneeId),
+                                ),
+                            ),
+                    ),
+                ),
+            )
             .returning(taskFields);
 
         return task ?? null;

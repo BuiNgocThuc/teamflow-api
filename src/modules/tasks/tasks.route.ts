@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import { authenticate } from "@/middleware";
 
-import { create, getById, list, remove, update } from "./tasks.controller.js";
+import { assign, create, getById, list, remove, update } from "./tasks.controller.js";
 
 const projectTasksRouter = Router();
 const tasksRouter = Router();
@@ -13,6 +13,7 @@ projectTasksRouter.get("/:projectId/tasks", list);
 
 tasksRouter.use(authenticate);
 tasksRouter.get("/:id", getById);
+tasksRouter.patch("/:id/assignee", assign);
 tasksRouter.patch("/:id", update);
 tasksRouter.delete("/:id", remove);
 

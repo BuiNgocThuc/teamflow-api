@@ -63,6 +63,10 @@ export const errorDefinitions = {
         statusCode: 404,
         message: "Task was not found.",
     },
+    TASK_ASSIGNEE_NOT_ORGANIZATION_MEMBER: {
+        statusCode: 400,
+        message: "Task assignee must be a member of the organization.",
+    },
     EMAIL_ALREADY_EXISTS: {
         statusCode: 409,
         message: "Email is already registered.",
