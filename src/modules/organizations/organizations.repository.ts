@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 
 import { db, organizationMembers, organizations } from "@/database";
 import { getPaginationOffset, type PaginationQuery } from "@/shared";
@@ -69,20 +69,6 @@ export const organizationsRepository = {
             .where(eq(organizations.id, organizationId));
 
         return organization ?? null;
-    },
-
-    async findMembership(userId: string, organizationId: string) {
-        const [membership] = await db
-            .select({ role: organizationMembers.role })
-            .from(organizationMembers)
-            .where(
-                and(
-                    eq(organizationMembers.userId, userId),
-                    eq(organizationMembers.organizationId, organizationId),
-                ),
-            );
-
-        return membership ?? null;
     },
 
     async updateName(organizationId: string, name: string) {

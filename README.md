@@ -41,6 +41,132 @@ thông qua việc xây dựng từng feature end-to-end với Express.js và Pos
 - Vitest và Supertest
 - Prettier
 
+## Database schema
+
+Sơ đồ dưới đây mô tả data model đầy đủ của TeamFlow, gồm các bảng hiện có và
+các bảng theo roadmap. Bảng hiện có trong PostgreSQL: `users`, `refresh_tokens`,
+`organizations`, `organization_members`. Các bảng còn lại là thiết kế dự kiến
+cho các phase tiếp theo; source of truth của schema đã implement là
+`src/database/schema.ts`.
+
+```mermaid
+erDiagram
+    USERS ||--o{ REFRESH_TOKENS : owns
+    USERS ||--o{ ORGANIZATION_MEMBERS : joins
+    ORGANIZATIONS ||--o{ ORGANIZATION_MEMBERS : has
+    ORGANIZATIONS ||--o{ PROJECTS : contains
+    PROJECTS ||--o{ TASKS : contains
+    USERS ||--o{ TASKS : creates
+    USERS ||--o{ TASKS : is_assigned
+    TASKS ||--o{ COMMENTS : has
+    USERS ||--o{ COMMENTS : writes
+    PROJECTS ||--o{ ACTIVITY_LOGS : records
+    USERS ||--o{ ACTIVITY_LOGS : performs
+    TASKS ||--o{ ACTIVITY_LOGS : relates_to
+    USERS ||--o{ NOTIFICATIONS : receives
+    TASKS ||--o{ NOTIFICATIONS : relates_to
+
+    USERS {
+        uuid id PK
+        varchar name
+        varchar email UK
+        varchar password_hash
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    REFRESH_TOKENS {
+        uuid id PK
+        uuid user_id FK
+        varchar token_hash UK
+        timestamptz expires_at
+        timestamptz revoked_at
+        timestamptz created_at
+    }
+
+    PROJECTS {
+        uuid id PK
+        uuid organization_id FK
+        varchar name
+        text description
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    TASKS {
+        uuid id PK
+        uuid project_id FK
+        uuid creator_id FK
+        uuid assignee_id FK
+        varchar title
+        text description
+        enum status
+        enum priority
+        timestamptz due_date
+        int version
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    COMMENTS {
+        uuid id PK
+        uuid task_id FK
+        uuid author_id FK
+        text content
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ACTIVITY_LOGS {
+        uuid id PK
+        uuid project_id FK
+        uuid task_id FK
+        uuid actor_id FK
+        varchar action
+        jsonb metadata
+        timestamptz created_at
+    }
+
+    NOTIFICATIONS {
+        uuid id PK
+        uuid user_id FK
+        uuid task_id FK
+        varchar type
+        jsonb data
+        timestamptz read_at
+        timestamptz created_at
+    }
+
+    ORGANIZATIONS {
+        uuid id PK
+        varchar name
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ORGANIZATION_MEMBERS {
+        uuid organization_id PK, FK
+        uuid user_id PK, FK
+        enum role
+        timestamptz created_at
+    }
+```
+
+`organization_members` là join table cho quan hệ many-to-many giữa user và
+organization. Composite primary key `(organization_id, user_id)` đảm bảo một
+user chỉ có một membership trong mỗi organization. Role hiện hỗ trợ `OWNER`,
+`ADMIN` và `MEMBER`.
+
+Các bảng theo roadmap:
+
+| Bảng            | Phase dự kiến | Mục đích                                                                               |
+| --------------- | ------------- | -------------------------------------------------------------------------------------- |
+| `projects`      | Phase 6       | Project thuộc một organization.                                                        |
+| `tasks`         | Phase 7–9     | Task, assignee, priority, due date, status workflow và version cho optimistic locking. |
+| `comments`      | Phase 10      | Thảo luận trên task.                                                                   |
+| `activity_logs` | Phase 11      | Audit trail cho task/project events.                                                   |
+| `notifications` | Phase 13      | In-app notification cho user.                                                          |
+
 ## Getting Started
 
 ### Yêu cầu

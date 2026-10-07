@@ -80,6 +80,26 @@
             "key": "organization_limit",
             "value": "20",
             "type": "string"
+        },
+        {
+            "key": "member_name",
+            "value": "Postman Member",
+            "type": "string"
+        },
+        {
+            "key": "member_email",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "member_password",
+            "value": "secure-password",
+            "type": "string"
+        },
+        {
+            "key": "member_user_id",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -535,6 +555,167 @@
                             }
                         ],
                         "url": "{{base_url}}/organizations/{{organization_id}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Organization Members & RBAC",
+            "item": [
+                {
+                    "name": "Register Member User",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set(\"member_email\", `member_${Date.now()}@example.com`);"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"creates a member user\", () => {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "pm.collectionVariables.set(\"member_user_id\", pm.response.json().user.id);"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"{{member_name}}\",\n    \"email\": \"{{member_email}}\",\n    \"password\": \"{{member_password}}\"\n}"
+                        },
+                        "url": "{{base_url}}/auth/register"
+                    }
+                },
+                {
+                    "name": "Add Member",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"adds a member\", () => {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"userId\": \"{{member_user_id}}\"\n}"
+                        },
+                        "url": "{{base_url}}/organizations/{{organization_id}}/members"
+                    }
+                },
+                {
+                    "name": "List Members",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"lists organization members\", () => {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/organizations/{{organization_id}}/members"
+                    }
+                },
+                {
+                    "name": "Promote Member to Admin",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"role\": \"ADMIN\"\n}"
+                        },
+                        "url": "{{base_url}}/organizations/{{organization_id}}/members/{{member_user_id}}"
+                    }
+                },
+                {
+                    "name": "Demote Admin to Member",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"role\": \"MEMBER\"\n}"
+                        },
+                        "url": "{{base_url}}/organizations/{{organization_id}}/members/{{member_user_id}}"
+                    }
+                },
+                {
+                    "name": "Remove Member",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": "{{base_url}}/organizations/{{organization_id}}/members/{{member_user_id}}"
                     }
                 }
             ]

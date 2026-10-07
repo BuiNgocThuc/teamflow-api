@@ -31,6 +31,14 @@ export const errorDefinitions = {
         statusCode: 403,
         message: "Only an organization owner can perform this action.",
     },
+    ORGANIZATION_MEMBER_MANAGEMENT_DENIED: {
+        statusCode: 403,
+        message: "You do not have permission to manage organization members.",
+    },
+    ORGANIZATION_OWNER_CANNOT_BE_MANAGED: {
+        statusCode: 403,
+        message: "Organization owners cannot be managed through this endpoint.",
+    },
     USER_NOT_FOUND: {
         statusCode: 404,
         message: "User was not found.",
@@ -39,9 +47,21 @@ export const errorDefinitions = {
         statusCode: 404,
         message: "Organization was not found.",
     },
+    ORGANIZATION_MEMBER_NOT_FOUND: {
+        statusCode: 404,
+        message: "Organization member was not found.",
+    },
     EMAIL_ALREADY_EXISTS: {
         statusCode: 409,
         message: "Email is already registered.",
+    },
+    ORGANIZATION_MEMBER_ALREADY_EXISTS: {
+        statusCode: 409,
+        message: "User is already a member of this organization.",
+    },
+    INVALID_ORGANIZATION_ROLE_TRANSITION: {
+        statusCode: 400,
+        message: "The requested organization role transition is invalid.",
     },
     INTERNAL_SERVER_ERROR: {
         statusCode: 500,
