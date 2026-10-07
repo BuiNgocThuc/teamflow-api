@@ -9,6 +9,7 @@ import {
     projectTasksParamsSchema,
     taskParamsSchema,
     updateTaskSchema,
+    updateTaskStatusSchema,
 } from "./tasks.schema.js";
 import {
     assignTask,
@@ -17,6 +18,7 @@ import {
     getTask,
     listTasks,
     updateTask,
+    updateTaskStatus,
 } from "./tasks.service.js";
 
 export async function create(request: Request, response: Response): Promise<Response> {
@@ -54,6 +56,17 @@ export async function assign(request: Request, response: Response): Promise<Resp
     const { id } = taskParamsSchema.parse(request.params);
     const input = assignTaskSchema.parse(request.body);
     const task = await assignTask(getAuthenticatedUserId(request), id, input);
+
+    return response.status(200).json({ task });
+}
+
+export async function updateStatus(
+    request: Request,
+    response: Response,
+): Promise<Response> {
+    const { id } = taskParamsSchema.parse(request.params);
+    const input = updateTaskStatusSchema.parse(request.body);
+    const task = await updateTaskStatus(getAuthenticatedUserId(request), id, input);
 
     return response.status(200).json({ task });
 }

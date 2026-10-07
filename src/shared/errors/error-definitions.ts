@@ -67,6 +67,10 @@ export const errorDefinitions = {
         statusCode: 400,
         message: "Task assignee must be a member of the organization.",
     },
+    INVALID_TASK_STATUS_TRANSITION: {
+        statusCode: 400,
+        message: "The requested task status transition is not allowed.",
+    },
     EMAIL_ALREADY_EXISTS: {
         statusCode: 409,
         message: "Email is already registered.",

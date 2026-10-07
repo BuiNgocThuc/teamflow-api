@@ -154,6 +154,25 @@ export const tasksRepository = {
         return task ?? null;
     },
 
+    async updateStatus(input: {
+        taskId: string;
+        expectedStatus: "TODO" | "IN_PROGRESS" | "DONE";
+        status: "TODO" | "IN_PROGRESS" | "DONE";
+    }) {
+        const [task] = await db
+            .update(tasks)
+            .set({
+                status: input.status,
+                updatedAt: new Date(),
+            })
+            .where(
+                and(eq(tasks.id, input.taskId), eq(tasks.status, input.expectedStatus)),
+            )
+            .returning(taskFields);
+
+        return task ?? null;
+    },
+
     async deleteById(taskId: string) {
         const [task] = await db
             .delete(tasks)

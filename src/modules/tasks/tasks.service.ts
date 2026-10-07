@@ -11,8 +11,16 @@ import type {
     AssignTaskInput,
     CreateTaskInput,
     ListTasksQuery,
+    TaskStatus,
     UpdateTaskInput,
+    UpdateTaskStatusInput,
 } from "./tasks.schema.js";
+
+const allowedStatusTransitions: Record<TaskStatus, readonly TaskStatus[]> = {
+    TODO: ["IN_PROGRESS"],
+    IN_PROGRESS: ["TODO", "DONE"],
+    DONE: ["IN_PROGRESS"],
+} as const;
 
 async function getProjectOrThrow(projectId: string) {
     const project = await projectsRepository.findById(projectId);
@@ -121,6 +129,34 @@ export async function assignTask(
     }
 
     return assignedTask;
+}
+
+export async function updateTaskStatus(
+    userId: string,
+    taskId: string,
+    input: UpdateTaskStatusInput,
+) {
+    const task = await getTaskOrThrow(taskId);
+    const project = await getProjectOrThrow(task.projectId);
+    await requireProjectManager(userId, project.organizationId);
+
+    const allowedNextStatuses = allowedStatusTransitions[task.status];
+
+    if (!allowedNextStatuses.includes(input.status)) {
+        throw new AppError("INVALID_TASK_STATUS_TRANSITION");
+    }
+
+    const updatedTask = await tasksRepository.updateStatus({
+        taskId,
+        expectedStatus: task.status,
+        status: input.status,
+    });
+
+    if (!updatedTask) {
+        throw new AppError("INVALID_TASK_STATUS_TRANSITION");
+    }
+
+    return updatedTask;
 }
 
 export async function deleteTask(userId: string, taskId: string) {
