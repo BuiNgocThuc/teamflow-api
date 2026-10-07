@@ -3,10 +3,12 @@ import express from "express";
 import { errorHandler } from "@/middleware";
 import {
     authRouter,
+    projectTasksRouter,
     organizationsRouter,
     usersRouter,
     organizationProjectsRouter,
     projectsRouter,
+    tasksRouter,
 } from "@/modules";
 
 const app = express();
@@ -24,6 +26,8 @@ app.use("/users", usersRouter);
 app.use("/organizations", organizationsRouter);
 app.use("/organizations", organizationProjectsRouter);
 app.use("/projects", projectsRouter);
+app.use("/projects", projectTasksRouter);
+app.use("/tasks", tasksRouter);
 
 app.use(errorHandler);
 

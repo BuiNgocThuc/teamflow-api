@@ -29,6 +29,13 @@
       "when": 1791340451649,
       "tag": "0003_pretty_smasher",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791344149851,
+      "tag": "0004_left_mauler",
+      "breakpoints": true
     }
   ]
 }

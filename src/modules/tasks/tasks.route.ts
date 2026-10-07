@@ -1,0 +1,19 @@
+import { Router } from "express";
+
+import { authenticate } from "@/middleware";
+
+import { create, getById, list, remove, update } from "./tasks.controller.js";
+
+const projectTasksRouter = Router();
+const tasksRouter = Router();
+
+projectTasksRouter.use(authenticate);
+projectTasksRouter.post("/:projectId/tasks", create);
+projectTasksRouter.get("/:projectId/tasks", list);
+
+tasksRouter.use(authenticate);
+tasksRouter.get("/:id", getById);
+tasksRouter.patch("/:id", update);
+tasksRouter.delete("/:id", remove);
+
+export { projectTasksRouter, tasksRouter };

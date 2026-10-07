@@ -23,6 +23,7 @@ export {
     requireMembership,
     requireOrganization,
     requireOwner,
+    requireProjectManager,
 } from "./organizations.authorization.js";
 export { create, getById, list, remove, update } from "./organizations.controller.js";
 export { organizationsRepository } from "./organizations.repository.js";

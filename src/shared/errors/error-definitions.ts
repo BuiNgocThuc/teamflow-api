@@ -59,6 +59,10 @@ export const errorDefinitions = {
         statusCode: 404,
         message: "Project was not found.",
     },
+    TASK_NOT_FOUND: {
+        statusCode: 404,
+        message: "Task was not found.",
+    },
     EMAIL_ALREADY_EXISTS: {
         statusCode: 409,
         message: "Email is already registered.",

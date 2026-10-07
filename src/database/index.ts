@@ -5,5 +5,8 @@ export {
     organizations,
     projects,
     refreshTokens,
+    taskPriorityEnum,
+    taskStatusEnum,
+    tasks,
     users,
 } from "./schema.js";

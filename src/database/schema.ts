@@ -96,3 +96,38 @@ export const projects = pgTable(
         ),
     ],
 );
+
+export const taskStatusEnum = pgEnum("task_status", ["TODO", "IN_PROGRESS", "DONE"]);
+
+export const taskPriorityEnum = pgEnum("task_priority", ["LOW", "MEDIUM", "HIGH"]);
+
+export const tasks = pgTable(
+    "tasks",
+    {
+        id: uuid("id").defaultRandom().primaryKey(),
+        projectId: uuid("project_id")
+            .notNull()
+            .references(() => projects.id, { onDelete: "cascade" }),
+        creatorId: uuid("creator_id")
+            .notNull()
+            .references(() => users.id),
+        assigneeId: uuid("assignee_id").references(() => users.id, {
+            onDelete: "set null",
+        }),
+        title: varchar("title", { length: 200 }).notNull(),
+        description: varchar("description"),
+        status: taskStatusEnum("status").notNull().default("TODO"),
+        priority: taskPriorityEnum("priority").notNull().default("MEDIUM"),
+        dueDate: timestamp("due_date", { withTimezone: true }),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp("updated_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => [
+        index("tasks_project_id_created_at_idx").on(table.projectId, table.createdAt),
+        index("tasks_creator_id_idx").on(table.creatorId),
+    ],
+);
