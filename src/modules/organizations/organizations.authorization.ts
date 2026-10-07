@@ -45,3 +45,13 @@ export async function requireMemberManager(userId: string, organizationId: strin
 
     return membership;
 }
+
+export async function requireProjectManager(userId: string, organizationId: string) {
+    const membership = await requireMembership(userId, organizationId);
+
+    if (membership.role === "MEMBER") {
+        throw new AppError("PROJECT_MANAGEMENT_DENIED");
+    }
+
+    return membership;
+}

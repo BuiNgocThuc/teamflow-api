@@ -39,6 +39,10 @@ export const errorDefinitions = {
         statusCode: 403,
         message: "Organization owners cannot be managed through this endpoint.",
     },
+    PROJECT_MANAGEMENT_DENIED: {
+        statusCode: 403,
+        message: "You do not have permission to manage projects.",
+    },
     USER_NOT_FOUND: {
         statusCode: 404,
         message: "User was not found.",
@@ -50,6 +54,10 @@ export const errorDefinitions = {
     ORGANIZATION_MEMBER_NOT_FOUND: {
         statusCode: 404,
         message: "Organization member was not found.",
+    },
+    PROJECT_NOT_FOUND: {
+        statusCode: 404,
+        message: "Project was not found.",
     },
     EMAIL_ALREADY_EXISTS: {
         statusCode: 409,

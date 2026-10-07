@@ -72,3 +72,27 @@ export const organizationMembers = pgTable(
         index("organization_members_user_id_idx").on(table.userId),
     ],
 );
+
+export const projects = pgTable(
+    "projects",
+    {
+        id: uuid("id").defaultRandom().primaryKey(),
+        organizationId: uuid("organization_id")
+            .notNull()
+            .references(() => organizations.id, { onDelete: "cascade" }),
+        name: varchar("name", { length: 100 }).notNull(),
+        description: varchar("description"),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp("updated_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => [
+        index("projects_organization_id_created_at_idx").on(
+            table.organizationId,
+            table.createdAt,
+        ),
+    ],
+);
