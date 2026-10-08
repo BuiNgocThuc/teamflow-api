@@ -1,6 +1,7 @@
 export { login, logout, refresh, register } from "./auth.controller.js";
 export { authRepository } from "./auth.repository.js";
 export { startRefreshTokenCleanup } from "./refresh-token-cleanup.js";
+export { validateRefreshTokenOrigin } from "./validate-refresh-token-origin.js";
 export { default as authRouter } from "./auth.route.js";
 export {
     loginSchema,

@@ -27,6 +27,11 @@ export const errorDefinitions = {
         statusCode: 429,
         message: "Too many requests. Please try again later.",
     },
+    INVALID_REFRESH_TOKEN_ORIGIN: {
+        statusCode: 403,
+        message:
+            "Refresh-token requests must come from the configured frontend origin.",
+    },
     ORGANIZATION_ACCESS_DENIED: {
         statusCode: 403,
         message: "You do not have access to this organization.",

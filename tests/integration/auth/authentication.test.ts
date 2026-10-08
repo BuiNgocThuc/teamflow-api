@@ -10,6 +10,7 @@ const credentials = {
     email: "jane@example.com",
     password: "secure-password",
 };
+const frontendOrigin = "http://localhost:3001";
 
 async function registerUser() {
     const response = await request(app).post("/auth/register").send(credentials);
@@ -132,7 +133,9 @@ describe("Authentication", () => {
         const loginResponse = await loginUser(agent);
         const previousCookie = getRefreshTokenCookie(loginResponse);
 
-        const refreshResponse = await agent.post("/auth/refresh");
+        const refreshResponse = await agent
+            .post("/auth/refresh")
+            .set("Origin", frontendOrigin);
 
         expect(refreshResponse.status).toBe(200);
         expect(refreshResponse.body.accessToken).toEqual(expect.any(String));
@@ -141,6 +144,7 @@ describe("Authentication", () => {
 
         const replayResponse = await request(app)
             .post("/auth/refresh")
+            .set("Origin", frontendOrigin)
             .set("Cookie", previousCookie);
 
         expect(replayResponse.status).toBe(401);
@@ -155,6 +159,7 @@ describe("Authentication", () => {
 
         const response = await request(app)
             .post("/auth/refresh")
+            .set("Origin", frontendOrigin)
             .send({ refreshToken });
 
         expect(response.status).toBe(401);
@@ -167,7 +172,9 @@ describe("Authentication", () => {
         const loginResponse = await loginUser(agent);
         const refreshCookie = getRefreshTokenCookie(loginResponse);
 
-        const logoutResponse = await agent.post("/auth/logout");
+        const logoutResponse = await agent
+            .post("/auth/logout")
+            .set("Origin", frontendOrigin);
 
         expect(logoutResponse.status).toBe(204);
         expect(logoutResponse.headers["set-cookie"][0]).toContain(
@@ -176,9 +183,29 @@ describe("Authentication", () => {
 
         const refreshResponse = await request(app)
             .post("/auth/refresh")
+            .set("Origin", frontendOrigin)
             .set("Cookie", refreshCookie);
 
         expect(refreshResponse.status).toBe(401);
         expect(refreshResponse.body.error.code).toBe("INVALID_REFRESH_TOKEN");
+    });
+
+    it("rejects refresh-token requests without the configured Origin", async () => {
+        await registerUser();
+        const loginResponse = await loginUser();
+        const refreshCookie = getRefreshTokenCookie(loginResponse);
+
+        const missingOrigin = await request(app)
+            .post("/auth/refresh")
+            .set("Cookie", refreshCookie);
+        const unexpectedOrigin = await request(app)
+            .post("/auth/refresh")
+            .set("Origin", "https://attacker.example")
+            .set("Cookie", refreshCookie);
+
+        expect(missingOrigin.status).toBe(403);
+        expect(missingOrigin.body.error.code).toBe("INVALID_REFRESH_TOKEN_ORIGIN");
+        expect(unexpectedOrigin.status).toBe(403);
+        expect(unexpectedOrigin.body.error.code).toBe("INVALID_REFRESH_TOKEN_ORIGIN");
     });
 });

@@ -1,28 +1,6 @@
 import type { RequestHandler } from "express";
 
-function getFrontendOrigin(): string {
-    const origin = process.env.FRONTEND_ORIGIN;
-
-    if (!origin) {
-        throw new Error("FRONTEND_ORIGIN is required.");
-    }
-
-    let parsedOrigin: URL;
-
-    try {
-        parsedOrigin = new URL(origin);
-    } catch {
-        throw new Error("FRONTEND_ORIGIN must be a valid absolute URL.");
-    }
-
-    if (parsedOrigin.origin !== origin) {
-        throw new Error("FRONTEND_ORIGIN must not include a path, query, or fragment.");
-    }
-
-    return origin;
-}
-
-const frontendOrigin = getFrontendOrigin();
+import { frontendOrigin } from "@/config/frontend-origin";
 
 export const cors: RequestHandler = (request, response, next) => {
     const origin = request.header("origin");
