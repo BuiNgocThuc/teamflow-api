@@ -1,6 +1,13 @@
 import type { Request, Response } from "express";
 
-import { loginSchema, refreshTokenSchema, registerSchema } from "./auth.schema.js";
+import { AppError } from "@/shared";
+
+import { loginSchema, registerSchema } from "./auth.schema.js";
+import {
+    clearRefreshTokenCookie,
+    getRefreshTokenFromCookie,
+    setRefreshTokenCookie,
+} from "./refresh-token-cookie.js";
 import {
     loginUser,
     logoutUser,
@@ -24,19 +31,31 @@ export async function login(request: Request, response: Response): Promise<Respo
     const input = loginSchema.parse(request.body);
     const authentication = await loginUser(input);
 
-    return response.status(200).json(authentication);
+    setRefreshTokenCookie(response, authentication.refreshToken);
+
+    return response.status(200).json({ accessToken: authentication.accessToken });
 }
 
 export async function refresh(request: Request, response: Response): Promise<Response> {
-    const input = refreshTokenSchema.parse(request.body);
-    const authentication = await refreshAuthentication(input);
+    const refreshToken = getRefreshTokenFromCookie(request);
 
-    return response.status(200).json(authentication);
+    if (!refreshToken) {
+        throw new AppError("INVALID_REFRESH_TOKEN");
+    }
+
+    const authentication = await refreshAuthentication(refreshToken);
+    setRefreshTokenCookie(response, authentication.refreshToken);
+
+    return response.status(200).json({ accessToken: authentication.accessToken });
 }
 
 export async function logout(request: Request, response: Response): Promise<void> {
-    const input = refreshTokenSchema.parse(request.body);
+    const refreshToken = getRefreshTokenFromCookie(request);
 
-    await logoutUser(input);
+    if (refreshToken) {
+        await logoutUser(refreshToken);
+    }
+
+    clearRefreshTokenCookie(response);
     response.status(204).end();
 }

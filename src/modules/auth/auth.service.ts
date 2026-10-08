@@ -2,7 +2,7 @@ import argon2 from "argon2";
 
 import { AppError, isPostgresUniqueViolation } from "@/shared";
 import { authRepository } from "./auth.repository.js";
-import type { LoginInput, RefreshTokenInput, RegisterInput } from "./auth.schema.js";
+import type { LoginInput, RegisterInput } from "./auth.schema.js";
 import {
     createAccessToken,
     createRefreshToken,
@@ -59,10 +59,10 @@ export async function loginUser(input: LoginInput) {
     };
 }
 
-export async function refreshAuthentication(input: RefreshTokenInput) {
+export async function refreshAuthentication(refreshToken: string) {
     const nextRefreshToken = createRefreshToken();
     const user = await authRepository.rotateRefreshToken({
-        currentTokenHash: hashRefreshToken(input.refreshToken),
+        currentTokenHash: hashRefreshToken(refreshToken),
         nextTokenHash: nextRefreshToken.tokenHash,
         nextExpiresAt: nextRefreshToken.expiresAt,
     });
@@ -80,6 +80,6 @@ export async function refreshAuthentication(input: RefreshTokenInput) {
     };
 }
 
-export async function logoutUser(input: RefreshTokenInput) {
-    await authRepository.revokeRefreshToken(hashRefreshToken(input.refreshToken));
+export async function logoutUser(refreshToken: string) {
+    await authRepository.revokeRefreshToken(hashRefreshToken(refreshToken));
 }

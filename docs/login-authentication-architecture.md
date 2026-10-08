@@ -2,12 +2,12 @@
 
 ## API contract
 
-| Endpoint             | Purpose                                                         |
-| -------------------- | --------------------------------------------------------------- |
-| `POST /auth/login`   | Verify email/password and issue tokens.                         |
-| `POST /auth/refresh` | Consume a refresh token and issue a rotated token pair.         |
-| `POST /auth/logout`  | Revoke a refresh token.                                         |
-| `GET /users/me`      | Temporary protected endpoint to verify access-token middleware. |
+| Endpoint             | Purpose                                                                        |
+| -------------------- | ------------------------------------------------------------------------------ |
+| `POST /auth/login`   | Verify email/password, return an access token, and set a refresh-token cookie. |
+| `POST /auth/refresh` | Consume the refresh-token cookie and issue a rotated access/cookie pair.       |
+| `POST /auth/logout`  | Revoke the refresh-token cookie value and clear the cookie.                    |
+| `GET /users/me`      | Read the authenticated user's persisted profile.                               |
 
 `POST /auth/login` accepts:
 
@@ -22,10 +22,13 @@ Successful login and refresh return:
 
 ```json
 {
-    "accessToken": "jwt",
-    "refreshToken": "opaque-random-token"
+    "accessToken": "jwt"
 }
 ```
+
+The raw refresh token is sent only in a `Set-Cookie` header, never in JSON.
+The cookie is named `teamflow_refresh_token` and is `HttpOnly`, `SameSite=Lax`,
+scoped to `/auth`, and `Secure` in production.
 
 ## Token design
 
@@ -65,7 +68,8 @@ sequenceDiagram
     DB-->>Repository: inserted
     Repository-->>Service: complete
     Service-->>Controller: accessToken + raw refreshToken
-    Controller-->>Client: 200 OK
+    Controller->>Client: Set-Cookie: teamflow_refresh_token=raw token; HttpOnly
+    Controller-->>Client: 200 {accessToken}
 ```
 
 ### Protected endpoint
@@ -94,7 +98,7 @@ sequenceDiagram
     participant Repository as Auth Repository
     participant DB as PostgreSQL
 
-    Client->>Service: POST /auth/refresh {refreshToken}
+    Client->>Service: POST /auth/refresh + refresh-token cookie
     Service->>Service: SHA-256(refreshToken)
     Service->>Service: generate next raw refresh token + hash
     Service->>Repository: rotateRefreshToken(currentHash, nextHash)
@@ -106,7 +110,7 @@ sequenceDiagram
         Repository->>DB: COMMIT
         Repository-->>Service: user identity
         Service->>Service: sign next access token
-        Service-->>Client: 200 OK new token pair
+        Service-->>Client: 200 OK {accessToken} + rotated Set-Cookie
     else invalid, expired, revoked, or replayed token
         Repository->>DB: COMMIT without changes
         Repository-->>Service: null
@@ -123,13 +127,13 @@ sequenceDiagram
     participant Repository as Auth Repository
     participant DB as PostgreSQL
 
-    Client->>Service: POST /auth/logout {refreshToken}
+    Client->>Service: POST /auth/logout + refresh-token cookie
     Service->>Service: SHA-256(refreshToken)
     Service->>Repository: revokeRefreshToken(tokenHash)
     Repository->>DB: UPDATE refresh_tokens SET revoked_at = now()
     DB-->>Repository: complete
     Repository-->>Service: complete
-    Service-->>Client: 204 No Content
+    Service-->>Client: 204 No Content + cleared Set-Cookie
 ```
 
 ```text
@@ -139,14 +143,14 @@ Login
   -> generate random refresh token
   -> hash refresh token
   -> persist hash and expiry
-  -> return raw refresh token once
+  -> send raw refresh token once in a Set-Cookie header
 ```
 
 ## Refresh rotation
 
 ```text
 POST /auth/refresh
-  -> hash supplied refresh token
+  -> read refresh token from the HttpOnly cookie and hash it
   -> atomically mark matching active token revoked
   -> create a replacement token row in the same transaction
   -> sign new access token
@@ -173,21 +177,21 @@ Client: Authorization: Bearer <access-token>
   -> response
 ```
 
-`GET /users/me` currently returns the authenticated token context. Phase 3 will
-replace this temporary verification behavior with the complete user-profile read
-and update feature.
+`GET /users/me` uses the authentication middleware context to load the
+authenticated user's persisted public profile. Its profile update counterpart is
+documented in `user-profile-architecture.md`.
 
 ## Error responses
 
-| Situation                                            | Status | Code                      |
-| ---------------------------------------------------- | -----: | ------------------------- |
-| Invalid login body                                   |    400 | `INVALID_INPUT`           |
-| Wrong email or password                              |    401 | `INVALID_CREDENTIALS`     |
-| Missing bearer token                                 |    401 | `AUTHENTICATION_REQUIRED` |
-| Invalid or expired access token                      |    401 | `INVALID_ACCESS_TOKEN`    |
-| Invalid, expired, revoked, or replayed refresh token |    401 | `INVALID_REFRESH_TOKEN`   |
-| Malformed JSON                                       |    400 | `INVALID_JSON`            |
-| Unexpected infrastructure error                      |    500 | `INTERNAL_SERVER_ERROR`   |
+| Situation                                                      | Status | Code                      |
+| -------------------------------------------------------------- | -----: | ------------------------- |
+| Invalid login body                                             |    400 | `INVALID_INPUT`           |
+| Wrong email or password                                        |    401 | `INVALID_CREDENTIALS`     |
+| Missing bearer token                                           |    401 | `AUTHENTICATION_REQUIRED` |
+| Invalid or expired access token                                |    401 | `INVALID_ACCESS_TOKEN`    |
+| Missing, invalid, expired, revoked, or replayed refresh cookie |    401 | `INVALID_REFRESH_TOKEN`   |
+| Malformed JSON                                                 |    400 | `INVALID_JSON`            |
+| Unexpected infrastructure error                                |    500 | `INTERNAL_SERVER_ERROR`   |
 
 The login error intentionally does not disclose whether email or password was
 incorrect.
@@ -212,8 +216,9 @@ The `token_hash` unique constraint prevents duplicate stored hashes.
 
 ```text
 src/modules/auth/
-  auth.schema.ts       Request contracts for register/login/refresh.
-  auth.controller.ts   HTTP handlers.
+  auth.schema.ts       Request contracts for register/login.
+  auth.controller.ts   HTTP handlers and refresh-cookie transport.
+  refresh-token-cookie.ts Cookie parsing and secure cookie options.
   auth.service.ts      Password verification and token lifecycle rules.
   auth.repository.ts   User and refresh-token persistence/transaction.
   auth.token.ts        JWT signing/verification and refresh-token generation.
@@ -223,7 +228,7 @@ src/middleware/authenticate.ts
   Bearer-token extraction, verification, and request.auth context.
 
 src/modules/users/
-  Temporary protected /users/me endpoint.
+  Authenticated profile endpoints.
 ```
 
 ## Verification
@@ -236,4 +241,5 @@ npm test
 ```
 
 The integration suite covers valid/invalid login, protected access, invalid and
-expired access tokens, refresh rotation/replay protection, and logout revocation.
+expired access tokens, refresh-cookie rotation/replay protection, and logout
+revocation/clearing.

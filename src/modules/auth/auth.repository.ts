@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, lt } from "drizzle-orm";
 
 import { db, refreshTokens, users } from "@/database";
 
@@ -87,5 +87,9 @@ export const authRepository = {
                     isNull(refreshTokens.revokedAt),
                 ),
             );
+    },
+
+    async deleteExpiredRefreshTokens(now: Date) {
+        await db.delete(refreshTokens).where(lt(refreshTokens.expiresAt, now));
     },
 };

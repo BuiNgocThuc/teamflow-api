@@ -1,248 +1,118 @@
 # TeamFlow API
 
-TeamFlow API là backend cho một hệ thống quản lý công việc nhóm, lấy cảm hứng từ
-Jira và Trello. Dự án cho phép user đăng ký, đăng nhập, quản lý profile, sau đó
-sẽ cộng tác trong organization, project và task.
+TeamFlow API là backend cho ứng dụng quản lý công việc nhóm, lấy cảm hứng từ Jira và Trello. Dự án học Node.js/TypeScript theo từng vertical slice: Express xử lý HTTP, PostgreSQL lưu dữ liệu, và mỗi feature đi từ validation đến integration test.
 
-Mục tiêu chính của project là củng cố nền tảng Node.js Backend và TypeScript
-thông qua việc xây dựng từng feature end-to-end với Express.js và PostgreSQL.
+## Chức năng đã triển khai
 
-## Chức năng
+| Chức năng      | Mô tả                                                                      |
+| -------------- | -------------------------------------------------------------------------- |
+| Registration   | Tạo tài khoản với password Argon2id; chỉ trả public user fields.           |
+| Authentication | Login, JWT access token, refresh-token rotation và logout.                 |
+| User profile   | Xem/cập nhật tên và email của người dùng hiện tại.                         |
+| Organizations  | Tạo, liệt kê có phân trang, xem, đổi tên và xóa workspace.                 |
+| Members & RBAC | Quản lý `OWNER`, `ADMIN`, `MEMBER` theo organization.                      |
+| Projects       | CRUD project trong organization.                                           |
+| Tasks          | CRUD task, priority, due date, assignment và workflow status có kiểm soát. |
 
-| Chức năng                | Mô tả                                                                               |
-| ------------------------ | ----------------------------------------------------------------------------------- |
-| User Registration        | User tạo tài khoản bằng tên, email và password; password được hash trước khi lưu.   |
-| Authentication           | User login, nhận JWT access token và refresh token, refresh session hoặc logout.    |
-| User Profile             | User xem và cập nhật profile của chính mình, gồm tên và email.                      |
-| Organization             | User tạo và quản lý không gian làm việc cho team.                                   |
-| Member & Role Management | Thêm/xóa thành viên và quản lý các role `OWNER`, `ADMIN`, `MEMBER`.                 |
-| Project Management       | Tạo, xem, cập nhật và xóa project trong organization.                               |
-| Task Management          | Tạo và quản lý task với title, description, priority, status, due date và assignee. |
-| Task Assignment          | Chỉ assign task cho user thuộc cùng organization.                                   |
-| Task Workflow            | Kiểm soát các transition trạng thái như `TODO`, `IN_PROGRESS` và `DONE`.            |
-| Comments                 | Thành viên thảo luận trên task, chỉnh sửa hoặc xóa comment của mình.                |
-| Activity Logs            | Lưu lại các thay đổi quan trọng như task được tạo, giao hoặc đổi trạng thái.        |
-| Notifications            | Thông báo khi user được assign task hoặc có comment liên quan.                      |
-| Search & Pagination      | Filter, search, sort và phân trang danh sách task.                                  |
-| Caching                  | Cache project summary bằng Redis và invalidation khi task thay đổi.                 |
-| CSV Export               | Export task của project qua CSV stream mà không tải toàn bộ data vào memory.        |
+Chưa có comments, activity logs, notifications, invitation/user lookup, leave organization, ownership transfer, task unassignment, search/filter/sort, Kanban board, global task list, Redis caching, CSV export hoặc real-time updates. Client không nên biểu diễn chúng như capability đang hoạt động.
 
-## Công nghệ sử dụng
+## Công nghệ
 
-- Node.js
-- TypeScript
-- Express.js
-- PostgreSQL
-- Drizzle ORM
-- Zod
-- Argon2id
-- JWT (`jose`)
-- Docker Compose
-- Vitest và Supertest
-- Prettier
+- Node.js, TypeScript, Express 5
+- PostgreSQL, Drizzle ORM
+- Zod, Argon2id, `jose`
+- Vitest, Supertest, Docker Compose
 
-## Database schema
+## Authentication và browser security
 
-Sơ đồ dưới đây mô tả data model đầy đủ của TeamFlow, gồm các bảng hiện có và
-các bảng theo roadmap. Bảng hiện có trong PostgreSQL: `users`, `refresh_tokens`,
-`organizations`, `organization_members`. Các bảng còn lại là thiết kế dự kiến
-cho các phase tiếp theo; source of truth của schema đã implement là
-`src/database/schema.ts`.
+`POST /auth/login` trả:
 
-```mermaid
-erDiagram
-    USERS ||--o{ REFRESH_TOKENS : owns
-    USERS ||--o{ ORGANIZATION_MEMBERS : joins
-    ORGANIZATIONS ||--o{ ORGANIZATION_MEMBERS : has
-    ORGANIZATIONS ||--o{ PROJECTS : contains
-    PROJECTS ||--o{ TASKS : contains
-    USERS ||--o{ TASKS : creates
-    USERS ||--o{ TASKS : is_assigned
-    TASKS ||--o{ COMMENTS : has
-    USERS ||--o{ COMMENTS : writes
-    PROJECTS ||--o{ ACTIVITY_LOGS : records
-    USERS ||--o{ ACTIVITY_LOGS : performs
-    TASKS ||--o{ ACTIVITY_LOGS : relates_to
-    USERS ||--o{ NOTIFICATIONS : receives
-    TASKS ||--o{ NOTIFICATIONS : relates_to
-
-    USERS {
-        uuid id PK
-        varchar name
-        varchar email UK
-        varchar password_hash
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    REFRESH_TOKENS {
-        uuid id PK
-        uuid user_id FK
-        varchar token_hash UK
-        timestamptz expires_at
-        timestamptz revoked_at
-        timestamptz created_at
-    }
-
-    PROJECTS {
-        uuid id PK
-        uuid organization_id FK
-        varchar name
-        text description
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    TASKS {
-        uuid id PK
-        uuid project_id FK
-        uuid creator_id FK
-        uuid assignee_id FK
-        varchar title
-        text description
-        enum status
-        enum priority
-        timestamptz due_date
-        int version
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    COMMENTS {
-        uuid id PK
-        uuid task_id FK
-        uuid author_id FK
-        text content
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    ACTIVITY_LOGS {
-        uuid id PK
-        uuid project_id FK
-        uuid task_id FK
-        uuid actor_id FK
-        varchar action
-        jsonb metadata
-        timestamptz created_at
-    }
-
-    NOTIFICATIONS {
-        uuid id PK
-        uuid user_id FK
-        uuid task_id FK
-        varchar type
-        jsonb data
-        timestamptz read_at
-        timestamptz created_at
-    }
-
-    ORGANIZATIONS {
-        uuid id PK
-        varchar name
-        timestamptz created_at
-        timestamptz updated_at
-    }
-
-    ORGANIZATION_MEMBERS {
-        uuid organization_id PK, FK
-        uuid user_id PK, FK
-        enum role
-        timestamptz created_at
-    }
+```json
+{ "accessToken": "jwt" }
 ```
 
-`organization_members` là join table cho quan hệ many-to-many giữa user và
-organization. Composite primary key `(organization_id, user_id)` đảm bảo một
-user chỉ có một membership trong mỗi organization. Role hiện hỗ trợ `OWNER`,
-`ADMIN` và `MEMBER`.
+Access token là JWT sống ngắn, được frontend giữ trong memory và gửi qua `Authorization: Bearer <access-token>`.
 
-Các bảng theo roadmap:
+Refresh token không xuất hiện trong JSON. API gửi nó qua cookie `teamflow_refresh_token` với `HttpOnly`, `SameSite=Lax`, `Path=/auth`; cookie được đặt `Secure` khi `NODE_ENV=production`. Browser tự gửi cookie này cho `POST /auth/refresh` (rotate token và trả access token mới) và `POST /auth/logout` (revoke token nếu có, xóa cookie, trả `204`).
 
-| Bảng            | Phase dự kiến | Mục đích                                                                               |
-| --------------- | ------------- | -------------------------------------------------------------------------------------- |
-| `projects`      | Phase 6       | Project thuộc một organization.                                                        |
-| `tasks`         | Phase 7–9     | Task, assignee, priority, due date, status workflow và version cho optimistic locking. |
-| `comments`      | Phase 10      | Thảo luận trên task.                                                                   |
-| `activity_logs` | Phase 11      | Audit trail cho task/project events.                                                   |
-| `notifications` | Phase 13      | In-app notification cho user.                                                          |
+API cho phép credentialed CORS chỉ từ `FRONTEND_ORIGIN`; không sử dụng wildcard origin. Nếu frontend và API thực sự cross-site, cần chuyển cookie sang `SameSite=None; Secure` **và** bổ sung CSRF/origin protection trước khi deploy.
 
-## Getting Started
+## API overview
 
-### Yêu cầu
+### Public endpoints
 
-- Node.js 20 trở lên
-- npm
-- Docker và Docker Compose
+| Method | Endpoint         | Response                                       |
+| ------ | ---------------- | ---------------------------------------------- |
+| `GET`  | `/health`        | `{ "status": "ok" }`                           |
+| `POST` | `/auth/register` | `201 { user }`                                 |
+| `POST` | `/auth/login`    | `200 { accessToken }` + refresh cookie         |
+| `POST` | `/auth/refresh`  | `200 { accessToken }` + rotated refresh cookie |
+| `POST` | `/auth/logout`   | `204` + clears refresh cookie                  |
 
-### Clone project
+Mọi endpoint dưới đây yêu cầu bearer access token.
 
-```bash
-git clone <repository-url>
-cd teamflow-api
+| Resource      | Endpoints                                                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Current user  | `GET`, `PATCH /users/me`                                                                                                              |
+| Organizations | `POST`, `GET /organizations`; `GET`, `PATCH`, `DELETE /organizations/:id`                                                             |
+| Members       | `GET`, `POST /organizations/:id/members`; `PATCH`, `DELETE /organizations/:id/members/:userId`                                        |
+| Projects      | `POST`, `GET /organizations/:organizationId/projects`; `GET`, `PATCH`, `DELETE /projects/:id`                                         |
+| Tasks         | `POST`, `GET /projects/:projectId/tasks`; `GET`, `PATCH`, `DELETE /tasks/:id`; `PATCH /tasks/:id/assignee`; `PATCH /tasks/:id/status` |
+
+Organization, project và task lists chỉ hỗ trợ `?page=1&limit=20`; response có dạng `{ data, pagination }` và `limit` nằm trong khoảng 1–100.
+
+## Roles và task workflow
+
+| Action                                      | OWNER | ADMIN | MEMBER |
+| ------------------------------------------- | :---: | :---: | :----: |
+| View organization, members, projects, tasks |  Yes  |  Yes  |  Yes   |
+| Rename/delete organization; change roles    |  Yes  |  No   |   No   |
+| Add members; remove MEMBER                  |  Yes  |  Yes  |   No   |
+| Remove ADMIN                                |  Yes  |  No   |   No   |
+| Manage projects and tasks                   |  Yes  |  Yes  |   No   |
+
+Task status chỉ chấp nhận:
+
+```text
+TODO -> IN_PROGRESS
+IN_PROGRESS -> TODO | DONE
+DONE -> IN_PROGRESS
 ```
 
-Thay `<repository-url>` bằng URL Git repository của bạn.
+Status update dùng conditional write, nên hai request cạnh tranh từ cùng trạng thái không thể cùng thành công. Assignment cũng kiểm tra membership lại trong SQL để tránh race khi target user vừa bị xóa khỏi organization.
 
-### Cài đặt dependencies
+## Database model
+
+```text
+users -> refresh_tokens
+users <-> organization_members <-> organizations -> projects -> tasks
+```
+
+`organization_members` có composite primary key `(organization_id, user_id)` và role `OWNER | ADMIN | MEMBER`. Xóa organization cascade members, projects và tasks; xóa project cascade tasks.
+
+## Cài đặt và chạy
+
+Yêu cầu: Node.js 20+, npm, Docker và Docker Compose.
 
 ```bash
 npm install
-```
-
-### Cấu hình environment variables
-
-```bash
 cp .env.example .env
 cp .env.test.example .env.test
-```
-
-Trước khi chạy production-like environment, thay `JWT_ACCESS_SECRET` trong
-`.env` bằng một secret mạnh và riêng tư.
-
-### Khởi động PostgreSQL và migration
-
-```bash
 docker compose up -d
 npm run db:migrate
 npm run db:migrate:test
-```
-
-### Chạy development server
-
-```bash
 npm run dev
 ```
 
-API chạy tại:
+API mặc định chạy tại `http://localhost:3000`. Thiết lập `FRONTEND_ORIGIN` thành origin chính xác của TeamFlow Web, ví dụ `http://localhost:3001`; không thêm path vào giá trị này. Thay `JWT_ACCESS_SECRET` bằng secret mạnh, riêng tư trước khi chạy ngoài local.
 
-```text
-http://localhost:3000
-```
-
-Kiểm tra server:
+## Kiểm tra
 
 ```bash
-curl http://localhost:3000/health
-```
-
-Kết quả mong đợi:
-
-```json
-{
-    "status": "ok"
-}
-```
-
-### Chạy tests
-
-```bash
+npm run format:check
+npm run typecheck
+npm run build
 npm test
 ```
 
-### Build project
-
-```bash
-npm run build
-npm start
-```
+Tài liệu kiến trúc theo từng feature nằm trong [`docs/`](./docs), còn các bài học Node.js tương ứng nằm trong [`learning/`](./learning).

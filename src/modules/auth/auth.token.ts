@@ -16,7 +16,7 @@ function getAccessTokenSecret(): Uint8Array {
     return new TextEncoder().encode(secret);
 }
 
-function getRefreshTokenLifetimeInDays(): number {
+export function getRefreshTokenLifetimeInDays(): number {
     const value = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? "7");
 
     if (!Number.isInteger(value) || value < 1 || value > 365) {

@@ -1869,13 +1869,3 @@ Sau khi hoàn thành phase:
 3. Chỉ ra technical debt nếu có.
 4. Đề xuất commit message.
 5. Xác nhận phase tiếp theo trong `plan.md`.
-
----
-
-# 8. Current Phase
-
-```text
-Phase 0 — Application Foundation
-```
-
-Không bắt đầu Phase 1 cho đến khi Phase 0 hoàn thành.

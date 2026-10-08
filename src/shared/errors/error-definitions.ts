@@ -23,6 +23,10 @@ export const errorDefinitions = {
         statusCode: 401,
         message: "Refresh token is invalid or expired.",
     },
+    RATE_LIMIT_EXCEEDED: {
+        statusCode: 429,
+        message: "Too many requests. Please try again later.",
+    },
     ORGANIZATION_ACCESS_DENIED: {
         statusCode: 403,
         message: "You do not have access to this organization.",
